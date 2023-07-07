@@ -1,0 +1,91 @@
+esphome:
+  name: lightbox
+
+esp32:
+  board: ttgo-t1
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  password: ""
+
+ota:
+  password: ""
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+wifi:
+  ssid: "IOT3"
+  password: "deadbeef12345"
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Lightbox Fallback Hotspot"
+    password: "QdgSix4xA2VH"
+
+captive_portal:
+    
+light:
+  - platform: esp32_rmt_led_strip
+    chipset: WS2812
+    pin: GPIO27
+    rmt_channel: 0
+    num_leds: 8
+    rgb_order: GRB
+    name: "RMT WS2812 Light"
+    id: "ledstrip"
+    effects:
+      - addressable_random_twinkle:
+          name: "twinkle"
+      - addressable_fireworks:
+          name: "fireworks"
+      - addressable_color_wipe:
+          name: "wipe"
+      - addressable_rainbow:
+          name: rainbow
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO12
+      mode:
+        input: true
+        pullup: true
+    name: "The Button"
+    device_class: window
+    on_press:
+      then:
+        - light.toggle:
+            id: ledstrip
+            transition_length: 0s
+spi:
+  mosi_pin: GPIO21
+  clk_pin: GPIO22
+
+font:
+  # gfonts://family[@weight]
+  - file: "gfonts://Roboto"
+    id: roboto
+    size: 20
+color:
+  - id: my_light_red
+    red: 100%
+    green: 20%
+    blue: 25%
+    white: 0%
+
+display:
+  - platform: ili9xxx
+    model: ili9341
+    update_interval: 500ms
+    dc_pin: 33
+    reset_pin: 32
+    lambda: |-
+      it.printf(0, 25, id(roboto), "red: %f", id(ledstrip).current_values.get_red());
+      it.printf(0, 50, id(roboto), "green: %f", id(ledstrip).current_values.get_green());
+      it.printf(0, 75, id(roboto), "blue: %f", id(ledstrip).current_values.get_blue());
+      it.strftime(0, 0, id(roboto), id(my_light_red), TextAlign::TOP_LEFT, "%d.%m.%Y %H:%M:%S", id(homeassistant_time).now());
