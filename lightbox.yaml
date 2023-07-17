@@ -20,72 +20,245 @@ time:
   - platform: homeassistant
     id: homeassistant_time
 wifi:
-  ssid: "IOT3"
-  password: "deadbeef12345"
+  networks:
+  - ssid: "IOT3"
+    password: "deadbeef12345"
+  - ssid: "Mdt A3"
+    password: "internet4all"
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Lightbox Fallback Hotspot"
-    password: "QdgSix4xA2VH"
+    password: "deadbeef12345"
 
 captive_portal:
-    
+
 light:
   - platform: esp32_rmt_led_strip
     chipset: WS2812
-    pin: GPIO27
+    pin: GPIO2
     rmt_channel: 0
-    num_leds: 8
+    num_leds: 64
     rgb_order: GRB
-    name: "RMT WS2812 Light"
-    id: "ledstrip"
-    effects:
-      - addressable_random_twinkle:
-          name: "twinkle"
-      - addressable_fireworks:
-          name: "fireworks"
-      - addressable_color_wipe:
-          name: "wipe"
-      - addressable_rainbow:
-          name: rainbow
-binary_sensor:
-  - platform: gpio
-    pin:
-      number: GPIO12
+    name: "Bremslicht rechts"
+    id: "bremslicht_r"
+    restore_mode: ALWAYS_ON
+    effects:  !include common/effects.yaml
+  - platform: esp32_rmt_led_strip
+    chipset: WS2812
+    pin: GPIO15
+    rmt_channel: 1
+    num_leds: 64
+    rgb_order: GRB
+    name: "Bremslicht Links"
+    id: "bremslicht_l"
+    restore_mode: ALWAYS_ON
+    effects:  !include common/effects.yaml
+  - platform: esp32_rmt_led_strip
+    chipset: WS2812
+    pin: GPIO13
+    rmt_channel: 2
+    num_leds: 150
+    rgb_order: GRB
+    internal: true
+    id: longstrip
+  - platform: partition
+    name: "Bodenlicht"
+    id: "bodenlicht"
+    restore_mode: ALWAYS_ON
+    effects:  !include common/effects.yaml      
+    segments:
+      # die ersten 70 LED von longstrip sind das bodenlicht
+      - id: longstrip
+        from: 0
+        to: 76
+
+  - platform: partition
+    name: "Sitz"
+    id: "sitzlicht"
+    restore_mode: ALWAYS_ON
+    effects:  !include common/effects.yaml      
+    segments:
+      # Rest sind am Sitz
+      - id: longstrip
+        from: 77
+        to: 149
+display:
+  - platform: addressable_light
+    id: bremslicht_matrix_r
+    addressable_light_id: bremslicht_r
+    width: 4
+    height: 16
+    pixel_mapper: |-
+      if (x % 2 == 0) {
+        return (x * 16) + y;
+      }
+      return (x * 16) + (15 - y);
+    rotation: 90°
+    update_interval: 16ms
+    lambda: |-
+          // Draw a bulls-eye pattern
+          Color red = Color(0xFF0000);
+          Color green = Color(0x00FF00);
+          Color yellow = Color(0xFFFF00);
+          Color blue = Color(0x0000FF);
+          it.line(0, 0, 8, 0, yellow);
+          it.line(9, 0, 15, 0, green);
+          it.line(0, 1, 8, 1, red);
+          it.line(0, 3, 15, 3, blue);
+          it.line(0, 0, 15, 3, red);
+ 
+ 
+spi:
+  mosi_pin: GPIO19
+  clk_pin: GPIO18
+
+#font:
+#  # gfonts://family[@weight]
+#  - file: "gfonts://Roboto"
+#    id: roboto
+#    size: 20
+#color:
+#  - id: my_light_red
+#    red: 100%
+#    green: 20%
+#    blue: 25%
+#    white: 0%
+#
+#display:
+#  - platform: st7789v
+#    model: TTGO TDisplay 135x240
+#    backlight_pin: GPIO4
+#    cs_pin: GPIO5
+#    dc_pin: GPIO16
+#    reset_pin: GPIO23
+#    rotation: 270
+#    id: "ttgodisplay"
+#    lambda: |-
+#      // Draw a line from [0,0] to [100,50]
+#      it.line(0, 0, 100, 50);
+#      // Draw the outline of a rectangle with the top left at [50,60], a width of 30 and a height of 42
+#      it.rectangle(50, 60, 30, 42);
+#      // Draw the same rectangle, but this time filled.
+#      it.filled_rectangle(50, 60, 30, 42);
+#
+#      // Circles! Let's draw one with the center at [25,25] and a radius of 10
+#      it.circle(25, 25, 10);
+#      // ... and the same thing filled again
+#      it.filled_circle(25, 25, 10);
+
+sensor:
+  - platform: rotary_encoder
+    name: "Rotary Encoder"
+    pin_a:
+      number: GPIO32
       mode:
         input: true
         pullup: true
-    name: "The Button"
-    device_class: window
-    on_press:
+    pin_b:
+      number: GPIO33
+      mode:
+        input: true
+        pullup: true
+    on_clockwise:
       then:
-        - light.toggle:
-            id: ledstrip
-            transition_length: 0s
-spi:
-  mosi_pin: GPIO21
-  clk_pin: GPIO22
+      # Increase the brightness by 5%
+      - light.dim_relative:
+          id: bremslicht_l
+          relative_brightness: 5%
+          transition_length: 10ms
+      - light.dim_relative:
+          id: bremslicht_r
+          relative_brightness: 5%
+          transition_length: 10ms
+      - light.dim_relative:
+          id: bodenlicht
+          relative_brightness: 5%
+          transition_length: 10ms
+    on_anticlockwise:
+      then:
+      # decrease the brightness by 5%
+      - light.dim_relative:
+          id: bremslicht_l
+          relative_brightness: -5%
+          transition_length: 10ms
+      - light.dim_relative:
+          id: bremslicht_r
+          relative_brightness: -5%
+          transition_length: 10ms
+      - light.dim_relative:
+          id: longstrip
+          relative_brightness: -5%
+          transition_length: 10ms
 
-font:
-  # gfonts://family[@weight]
-  - file: "gfonts://Roboto"
-    id: roboto
-    size: 20
-color:
-  - id: my_light_red
-    red: 100%
-    green: 20%
-    blue: 25%
-    white: 0%
+# A de-bounced GPIO is used to 'click'
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO25
+      mode:
+        input: true
+        pullup: true
+    name: "Button 25"
+    device_class: window
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+    on_press:
+      - logger.log: "GPIO 25 click"
+      - light.turn_on:
+          id: bremslicht_l
+          effect: rainbow
+      - light.turn_on:
+          id: bremslicht_r
+          effect: rainbow
+      - light.turn_on:
+          id: bodenlicht
+          effect: RGB Breathing
+          brightness: 100%
+      - light.turn_on:
+          id: sitzlicht
+          effect: rainbow
+  - platform: gpio
+    pin:
+      number: GPIO26
+      mode:
+        input: true
+        pullup: true
+    name: "Button 26"
+    device_class: window
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+    on_press:
+      - light.turn_on:
+          id: bremslicht_l
+          effect: twinkle
+      - light.turn_on:
+          id: bremslicht_r
+          effect: twinkle
+      - light.turn_on:
+          id: bodenlicht
+          effect: Lightning
+  - platform: gpio
+    pin:
+      number: GPIO27
+      mode:
+        input: true
+        pullup: true
+    name: "Button 27"
+    device_class: window
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+    on_press:
+      - light.turn_on:
+          id: bremslicht_l
+          effect: rainbow
+      - light.turn_on:
+          id: bremslicht_r
+          effect: rainbow
+      - light.turn_on:
+          id: bodenlicht
+          effect: wipe
 
-display:
-  - platform: ili9xxx
-    model: ili9341
-    update_interval: 500ms
-    dc_pin: 33
-    reset_pin: 32
-    lambda: |-
-      it.printf(0, 25, id(roboto), "red: %f", id(ledstrip).current_values.get_red());
-      it.printf(0, 50, id(roboto), "green: %f", id(ledstrip).current_values.get_green());
-      it.printf(0, 75, id(roboto), "blue: %f", id(ledstrip).current_values.get_blue());
-      it.strftime(0, 0, id(roboto), id(my_light_red), TextAlign::TOP_LEFT, "%d.%m.%Y %H:%M:%S", id(homeassistant_time).now());

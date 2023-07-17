@@ -1,0 +1,96 @@
+- addressable_random_twinkle:
+    name: "twinkle"
+    twinkle_probability: 30%
+- addressable_fireworks:
+    name: "fireworks"
+- addressable_color_wipe:
+    name: "wipe"
+    add_led_interval: 50ms
+- addressable_rainbow:
+    name: rainbow
+- strobe:
+    name: Lightning
+    colors:
+      - state: True
+        brightness: 100%
+        red: 50%
+        green: 90%
+        blue: 100%
+        white: 0%
+        duration: 50ms
+      - state: False
+        duration: 50ms
+      - state: True
+        brightness: 100%
+        red: 90%
+        green: 90%
+        blue: 100%
+        white: 0%
+        duration: 160ms
+      - state: False
+        duration: 50ms
+      - state: True
+        brightness: 100%
+        red: 90%
+        green: 90%
+        blue: 100%
+        white: 0%
+        duration: 50ms
+      - state: False
+        duration: 50ms
+      - state: True
+        brightness: 100%
+        red: 90%
+        green: 90%
+        blue: 100%
+        white: 0%
+        duration: 150ms
+      - state: False
+        duration: 4000ms
+
+
+- lambda:
+    name: Breathing
+    update_interval: 16s
+    lambda: |-
+      static int state = 0;
+      static int color = 1;
+      auto call = id(bodenlicht).turn_on();
+      call.set_transition_length(15000);
+      if (state == 0) 
+      {
+        call.set_brightness(1.0);
+      }
+        else if (state == 1)
+      {
+        call.set_brightness(0.01);
+      }
+        call.perform();
+        state ++;
+        if (state == 2){
+        state = 0;
+        }
+- lambda:
+    name: RGB Breathing
+    update_interval: 1s
+    lambda: |-
+      #define ColorLightBlue 0.5, 0.5, 1.0
+      static int state = 0;
+      static int color = 1;
+      auto call = id(bodenlicht).turn_on(); //put the id for your light in here
+      call.set_transition_length(2000);
+      call.set_rgb(ColorLightBlue);
+      if (state == 0) 
+      {
+        call.set_brightness(0.01);        
+      }
+        else if (state == 1)
+      {
+        call.set_brightness(1.0);
+      }
+      state ++;
+      if (state == 2){
+        state = 0;
+      }
+      call.perform();
+        
