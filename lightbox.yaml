@@ -30,6 +30,8 @@ wifi:
   ap:
     ssid: "Lightbox Fallback Hotspot"
     password: "deadbeef12345"
+web_server:
+  port: 80
 
 captive_portal:
 
