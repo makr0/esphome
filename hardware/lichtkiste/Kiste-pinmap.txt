@@ -1,0 +1,29 @@
+           USB
+
+JP1                JP8 
+1: VCC             5: VCC
+2: VCC             4: GPIO27
+3: GPIO12          3: GPIO26-DAC2
+4: GND             2: GPIO25-DAC1
+5: GND             1: GND
+
+JP2                JP7
+1: VCC             5: VCC 
+2: VCC             4: GPIO33
+3: GPIO13          3: GPIO32
+4: GND             2: GPIO39
+5: GND             1: GND
+
+JP3                JP5
+1: VCC             5: VCC 
+2: VCC             4: GPIO38
+3: GPIO15          3: GPIO37
+4: GND             2: GPIO36
+5: GND             1: GND
+
+JP4                JP6
+1: VCC             5: VCC 
+2: VCC             4: 17-DIONLY
+3: GPIO2           3: GPIO22-SCL
+4: GND             2: GPIO21-SDA
+5: GND             1: GND
