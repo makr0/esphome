@@ -1,5 +1,7 @@
 esphome:
   name: lightbox
+  includes:
+  - sideboardSensor.h
 
 esp32:
   board: ttgo-t1
@@ -8,6 +10,7 @@ esp32:
 
 # Enable logging
 logger:
+  level: INFO
 
 # Enable Home Assistant API
 api:
@@ -35,35 +38,36 @@ web_server:
 
 captive_portal:
 
+uart:
+  id: uart_bus
+  baud_rate: 115200
+  rx_pin: GPIO37
+#    tx_pin: GPIO36
+
 light:
-  - platform: esp32_rmt_led_strip
-    chipset: WS2812
-    pin: GPIO2
-    rmt_channel: 0
-    num_leds: 64
-    rgb_order: GRB
+  - id: "bremslicht_r"
     name: "Bremslicht rechts"
-    id: "bremslicht_r"
-    restore_mode: ALWAYS_ON
-    effects:  !include common/effects.yaml
-  - platform: esp32_rmt_led_strip
-    chipset: WS2812
-    pin: GPIO15
-    rmt_channel: 1
+    pin: GPIO2
     num_leds: 64
-    rgb_order: GRB
-    name: "Bremslicht Links"
-    id: "bremslicht_l"
     restore_mode: ALWAYS_ON
     effects:  !include common/effects.yaml
-  - platform: esp32_rmt_led_strip
-    chipset: WS2812
+    <<: !include { file: common/neopixelmethod.yaml }
+    rmt_channel: 0
+
+  - id: "bremslicht_l"
+    name: "Bremslicht links"
+    pin: GPIO15
+    num_leds: 64
+    restore_mode: ALWAYS_ON
+    effects:  !include common/effects.yaml
+    <<: !include { file: common/neopixelmethod.yaml }
+    rmt_channel: 1
+  - id: longstrip
     pin: GPIO13
-    rmt_channel: 2
     num_leds: 150
-    rgb_order: GRB
     internal: true
-    id: longstrip
+    <<: !include { file: common/neopixelmethod.yaml }
+    rmt_channel: 2
   - platform: partition
     name: "Bodenlicht"
     id: "bodenlicht"
@@ -97,7 +101,7 @@ display:
       }
       return (x * 16) + (15 - y);
     rotation: 90°
-    update_interval: 16ms
+    update_interval: 20ms
     lambda: |-
           // Draw a bulls-eye pattern
           Color red = Color(0xFF0000);
@@ -152,6 +156,7 @@ spi:
 sensor:
   - platform: rotary_encoder
     name: "Rotary Encoder"
+    resolution: 2
     pin_a:
       number: GPIO32
       mode:
@@ -193,6 +198,25 @@ sensor:
           relative_brightness: -5%
           transition_length: 10ms
 
+  - platform: custom
+    id: sideboard
+    lambda: |-
+      auto sideboard = new SideboardSensor(id(uart_bus));
+      App.register_component(sideboard);
+      return {
+          sideboard->speed,
+          sideboard->batVoltage,
+          sideboard->cmdLed
+      };
+  
+    sensors:
+    - name: "speed"
+      accuracy_decimals: 2
+      unit_of_measurement : rpm
+    - name: "Traction Battery Voltage"
+      accuracy_decimals: 2
+      unit_of_measurement : V
+    - name: "Car LED"
 # A de-bounced GPIO is used to 'click'
 binary_sensor:
   - platform: gpio

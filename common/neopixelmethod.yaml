@@ -1,0 +1,4 @@
+platform: esp32_rmt_led_strip
+rgb_order: GRB
+chipset: WS2812
+rmt_channel: ${channel}
